@@ -5,6 +5,7 @@ import (
 	"sort"
 	"strconv"
 	"strings"
+	"reflect"
 )
 
 var serialNum = map[string]string{
@@ -22,6 +23,7 @@ type Router interface {
 	Post(pattern, prenum string, classic interface{})
 	Put(pattern, prenum string, classic interface{})
 	Delete(pattern, prenum string, classic interface{})
+	Sources() []*Source
 }
 
 type sourceList []*Source
@@ -45,7 +47,7 @@ func NewRouter() Router {
 	}
 }
 
-func (r *router) GetSources() []*Source {
+func (r *router) Sources() []*Source {
 	if !r.isSort {
 		r.isSort = true
 		sort.Sort(sourceList(r.sources))
@@ -54,7 +56,7 @@ func (r *router) GetSources() []*Source {
 }
 
 func (r *router) Group(pattern string, fn func()) {
-	r.groups = append(r.groups, "/"+strings.Trim(pattern, '/'))
+	r.groups = append(r.groups, "/"+strings.Trim(pattern, "/"))
 	fn()
 	r.groups = r.groups[:len(r.groups)-1]
 }
@@ -89,7 +91,13 @@ func (r *router) Any(pattern, prenum string, classic interface{}) {
 }
 
 func (r *router) handle(method, pattern, prenum string, classic interface{}) {
-	pattern = "/" + strings.Trim(pattern, '/')
+	if !IsDigit(prenum) {
+		panic("The prenum must be a numeric string")
+	}
+	if reflect.TypeOf(classic).Kind() != reflect.Ptr{
+		panic("The classic must be a pointer")
+	}
+	pattern = "/" + strings.Trim(pattern, "/")
 	if len(r.groups) > 0 {
 		groupPattern := ""
 		for _, prefix := range r.groups {
@@ -97,6 +105,7 @@ func (r *router) handle(method, pattern, prenum string, classic interface{}) {
 		}
 		pattern = groupPattern + pattern
 	}
+
 	r.sources = append(r.sources, &Source{
 		Pattern: pattern,
 		Method:  method,
@@ -117,4 +126,13 @@ func (sl sourceList) Less(i, j int) bool {
 	ii, _ := strconv.Atoi(sl[i].Serial)
 	ij, _ := strconv.Atoi(sl[j].Serial)
 	return ii < ij
+}
+
+func IsDigit(ch string) bool {
+	for i := 0; i < len(ch); i++ {
+		if !('0' <= ch[i] && ch[i] <= '9'){
+			return false
+		}
+	}
+	return true
 }
