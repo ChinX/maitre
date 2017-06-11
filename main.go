@@ -1,9 +1,10 @@
 package main
 
 import (
-	"github.com/chinx/maitre/module/svrmux"
-	"github.com/chinx/maitre/router"
 	"log"
+
+	"github.com/chinx/maitre/router"
+	"github.com/chinx/maitre/svrmux"
 )
 
 func main() {

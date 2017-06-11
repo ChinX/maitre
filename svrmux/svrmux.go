@@ -2,10 +2,10 @@ package svrmux
 
 import (
 	"net/http"
+	"reflect"
 	"sort"
 	"strconv"
 	"strings"
-	"reflect"
 )
 
 var serialNum = map[string]string{
@@ -94,7 +94,7 @@ func (r *router) handle(method, pattern, prenum string, classic interface{}) {
 	if !IsDigit(prenum) {
 		panic("The prenum must be a numeric string")
 	}
-	if reflect.TypeOf(classic).Kind() != reflect.Ptr{
+	if reflect.TypeOf(classic).Kind() != reflect.Ptr {
 		panic("The classic must be a pointer")
 	}
 	pattern = "/" + strings.Trim(pattern, "/")
@@ -130,7 +130,7 @@ func (sl sourceList) Less(i, j int) bool {
 
 func IsDigit(ch string) bool {
 	for i := 0; i < len(ch); i++ {
-		if !('0' <= ch[i] && ch[i] <= '9'){
+		if !('0' <= ch[i] && ch[i] <= '9') {
 			return false
 		}
 	}
