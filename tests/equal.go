@@ -2,60 +2,71 @@ package tests
 
 import "reflect"
 
-func EqualStruct(s, v interface{}) bool {
-	return equalValue(reflect.ValueOf(s), reflect.ValueOf(v))
+func EqualStruct(first, second interface{}) bool {
+	return equalValue(checkPtr(first), checkPtr(second))
 }
 
-func convNoptr(val reflect.Value) (reflect.Value, reflect.Type) {
-	if val.Kind() == reflect.Ptr {
-		val = val.Elem()
+func checkPtr(val interface{}) reflect.Value {
+	rv := reflect.ValueOf(val)
+	if rv.Kind() != reflect.Ptr || rv.IsNil(){
+		panic("Pointers are accepted as a models that must not empty")
 	}
-	return val, val.Type()
+	return rv.Elem()
 }
 
-func equalValue(sValue, vValue reflect.Value) bool {
-	var typ reflect.Type
-	sValue, typ = convNoptr(sValue)
-	vValue, _ = convNoptr(vValue)
-	for i := 0; i < typ.NumField(); i++ {
-		typFiled := typ.Field(i)
-		valFiled := sValue.Field(i)
-		if !valFiled.CanSet() {
+func formatTypeValue(rv reflect.Value) (reflect.Type, reflect.Value) {
+	if rv.Kind() == reflect.Ptr {
+		rv = rv.Elem()
+	}
+	return rv.Type(), rv
+}
+
+func equalValue(first, second reflect.Value) bool {
+	frt, frv := formatTypeValue(first)
+	srt, srv := formatTypeValue(second)
+	if frt.Kind() != srt.Kind() {
+		return false
+	}
+
+	for i := 0; i < frt.NumField(); i++ {
+		frs := frt.Field(i)
+		if _, ok := frs.Tag.Lookup("equal"); !ok {
 			continue
 		}
-		if _, ok := typFiled.Tag.Lookup("equal"); !ok {
+
+		fiv := frv.Field(i)
+		if !fiv.CanSet() || frs.Anonymous {
 			continue
 		}
-		equal := equalWithProperType(typFiled, valFiled, vValue.Field(i))
-		if !equal {
+
+		siv := srv.Field(i)
+		if fiv.Kind() == reflect.Ptr && (fiv.IsNil() || siv.IsNil()) {
+			return fiv.IsNil() == siv.IsNil()
+		}
+
+		if !equalWithProperType(fiv, siv) {
 			return false
 		}
 	}
 	return true
 }
 
-func equalWithProperType(typeField reflect.StructField, sValue, vValue reflect.Value) bool {
-	kind := typeField.Type.Kind()
-	if kind == reflect.Ptr{
-		if !typeField.Anonymous {
-			return true
-		}
-		sValue = sValue.Elem()
-		vValue = vValue.Elem()
-		kind = sValue.Kind()
-	}
-	switch typeField.Type.Kind() {
+func equalWithProperType(first, second reflect.Value) bool {
+	frt, frv := formatTypeValue(first)
+	_, srv := formatTypeValue(second)
+
+	switch frt.Kind() {
 	case reflect.Int, reflect.Int8, reflect.Int16, reflect.Int32, reflect.Int64,
 		reflect.Uint, reflect.Uint8, reflect.Uint16, reflect.Uint32, reflect.Uint64:
-		return sValue.Int() == vValue.Int()
+		return frv.Int() == srv.Int()
 	case reflect.Bool:
-		return sValue.Bool() == vValue.Bool()
+		return frv.Bool() == srv.Bool()
 	case reflect.Float32, reflect.Float64:
-		return sValue.Float() == vValue.Float()
+		return frv.Float() == srv.Float()
 	case reflect.String:
-		return sValue.String() == vValue.String()
+		return frv.String() == srv.String()
 	case reflect.Struct:
-		return equalValue(sValue, vValue)
+		return equalValue(frv, srv)
 	case reflect.Map, reflect.Array, reflect.Slice:
 		//todo:
 	}

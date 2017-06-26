@@ -18,7 +18,7 @@ func BenchmarkEqualStruct(t *testing.B) {
 		D: map[string]string{"aa":"aaa"},
 	}
 
-	b := Mystruct{
+	b := &Mystruct{
 		A: "aaa",
 		B: &str,
 		c: 2,
@@ -38,7 +38,7 @@ func TestEqualStruct(t *testing.T) {
 		D: map[string]string{"aa":"aaa"},
 	}
 
-	b := Mystruct{
+	b := &Mystruct{
 		A: "aaa",
 		B: &str,
 		c: 2,
